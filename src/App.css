@@ -134,6 +134,7 @@
   flex-direction: column;
   gap: 4px;
   margin-bottom: 12px;
+  min-width: 0;
 }
 
 .field label {
@@ -145,6 +146,8 @@
 .field input,
 .field select,
 .field textarea {
+  width: 100%;
+  min-width: 0;
   padding: 10px 12px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -155,6 +158,12 @@
 .field-row {
   display: flex;
   gap: 10px;
+  min-width: 0;
+}
+
+.field-row > .field {
+  flex: 1;
+  min-width: 0;
 }
 
 .field-row > .field {
@@ -237,8 +246,10 @@
   max-width: 640px;
   max-height: 90vh;
   overflow-y: auto;
+  overflow-x: hidden;
   border-radius: 16px 16px 0 0;
   padding: 16px;
+  box-sizing: border-box;
 }
 
 .modal-sheet-header {
