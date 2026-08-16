@@ -6,6 +6,7 @@ import ProdutoForm from './ProdutoForm'
 export default function Produtos() {
   const [produtos, setProdutos] = useState([])
   const [vendidoPorProduto, setVendidoPorProduto] = useState({})
+  const [markupPadraoPorCategoria, setMarkupPadraoPorCategoria] = useState({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [formState, setFormState] = useState(null) // { mode, produto }
@@ -13,9 +14,10 @@ export default function Produtos() {
   async function load() {
     setLoading(true)
     setError(null)
-    const [produtosRes, vendasRes] = await Promise.all([
+    const [produtosRes, vendasRes, categoriasRes] = await Promise.all([
       supabase.from('produtos').select('*').order('criado_em', { ascending: false }),
       supabase.from('vendas').select('produto_id, quantidade, tipo_movimento'),
+      supabase.from('categorias').select('nome, markup_padrao'),
     ])
 
     if (produtosRes.error) {
@@ -32,6 +34,9 @@ export default function Produtos() {
 
     setProdutos(produtosRes.data || [])
     setVendidoPorProduto(vendidoMap)
+    setMarkupPadraoPorCategoria(
+      Object.fromEntries((categoriasRes.data || []).map((c) => [c.nome, c.markup_padrao]))
+    )
     setLoading(false)
   }
 
@@ -83,10 +88,34 @@ export default function Produtos() {
 
       {!loading &&
         produtos.map((p) => {
-          const derived = produtoDerivado(p, vendidoPorProduto[p.id] || 0)
+          const derived = produtoDerivado(p, vendidoPorProduto[p.id] || 0, markupPadraoPorCategoria)
           return (
             <div className="card" key={p.id}>
               <div className="list-item" style={{ border: 'none', margin: 0, padding: 0 }}>
+                {p.foto_url ? (
+                  <img
+                    src={p.foto_url}
+                    alt={p.nome}
+                    style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 'var(--radius)', flexShrink: 0 }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: 'var(--radius)',
+                      background: 'var(--bg)',
+                      border: '1px solid var(--border)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                      fontSize: 20,
+                    }}
+                  >
+                    👕
+                  </div>
+                )}
                 <div className="list-item-main">
                   <div className="list-item-title">{p.nome}</div>
                   <div className="list-item-sub">

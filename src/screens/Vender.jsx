@@ -18,7 +18,7 @@ export default function Vender() {
   useEffect(() => {
     supabase
       .from('produtos')
-      .select('id, sku, nome, preco_venda')
+      .select('id, sku, nome, preco_venda, foto_url')
       .order('nome')
       .then(({ data, error }) => {
         if (error) setError(error.message)
@@ -106,6 +106,9 @@ export default function Vender() {
                   style={{ margin: 0, borderRadius: 0, borderLeft: 'none', borderRight: 'none', borderTop: 'none', cursor: 'pointer' }}
                   onClick={() => selecionar(p)}
                 >
+                  {p.foto_url && (
+                    <img src={p.foto_url} alt={p.nome} style={{ width: 36, height: 36, objectFit: 'cover', borderRadius: 'var(--radius)', flexShrink: 0 }} />
+                  )}
                   <div className="list-item-main">
                     <div className="list-item-title">{p.nome}</div>
                     <div className="list-item-sub">{p.sku} · {fmtMoeda(p.preco_venda)}</div>
@@ -118,6 +121,13 @@ export default function Vender() {
 
         {selecionado && (
           <>
+            {selecionado.foto_url && (
+              <img
+                src={selecionado.foto_url}
+                alt={selecionado.nome}
+                style={{ width: 96, height: 96, objectFit: 'cover', borderRadius: 'var(--radius)', border: '1px solid var(--border)', marginBottom: 12 }}
+              />
+            )}
             <div className="field-row">
               <div className="field">
                 <label>Preço</label>

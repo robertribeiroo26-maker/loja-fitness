@@ -1,4 +1,4 @@
-import { MARGEM_MINIMA_GLOBAL, MARKUP_PADRAO_POR_CATEGORIA } from './config'
+import { MARGEM_MINIMA_GLOBAL } from './config'
 
 export function custoTotalProduto(produto) {
   const qtd = produto.qtd_comprada || 1
@@ -9,11 +9,11 @@ export function custoTotalProduto(produto) {
   )
 }
 
-export function markupProduto(produto) {
+export function markupProduto(produto, markupPadraoPorCategoria = {}) {
   if (produto.markup_manual !== null && produto.markup_manual !== undefined) {
     return Number(produto.markup_manual)
   }
-  return MARKUP_PADRAO_POR_CATEGORIA[produto.categoria] ?? 1.0
+  return markupPadraoPorCategoria[produto.categoria] ?? 1.0
 }
 
 export function precoMinimo(custoTotal) {
@@ -46,9 +46,9 @@ export function estoqueAtual(produto, qtdVendidaLiquida) {
   )
 }
 
-export function produtoDerivado(produto, qtdVendidaLiquida = 0) {
+export function produtoDerivado(produto, qtdVendidaLiquida = 0, markupPadraoPorCategoria = {}) {
   const custoTotal = custoTotalProduto(produto)
-  const markup = markupProduto(produto)
+  const markup = markupProduto(produto, markupPadraoPorCategoria)
   const precoVenda = Number(produto.preco_venda || 0)
   const estoque = estoqueAtual(produto, qtdVendidaLiquida)
   return {

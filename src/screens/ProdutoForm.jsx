@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { CATEGORIAS } from '../lib/config'
 import { custoTotalProduto, markupProduto, precoMinimo, precoRecomendado, fmtMoeda } from '../lib/calc'
+import CategoriasManager from './CategoriasManager'
 
 const BLANK = {
   sku: '',
   nome: '',
-  categoria: CATEGORIAS[0],
+  categoria: '',
   tecido: '',
   cor: '',
   tamanho: '',
@@ -39,10 +39,48 @@ export default function ProdutoForm({ mode, produto, onClose, onSaved }) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
   const [precoVendaTouched, setPrecoVendaTouched] = useState(mode !== 'novo')
+  const [categorias, setCategorias] = useState([])
+  const [showCategoriasManager, setShowCategoriasManager] = useState(false)
+  const [fotoFile, setFotoFile] = useState(null)
+  const [fotoPreview, setFotoPreview] = useState(mode === 'duplicar' ? null : produto?.foto_url || null)
+  const [removerFoto, setRemoverFoto] = useState(false)
+
+  async function loadCategorias() {
+    const { data, error } = await supabase.from('categorias').select('*').order('nome')
+    if (error) {
+      setError(error.message)
+      return
+    }
+    setCategorias(data || [])
+    if (mode === 'novo' && !form.categoria && data?.length) {
+      set('categoria', data[0].nome)
+    }
+  }
+
+  useEffect(() => {
+    loadCategorias()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   function set(field, value) {
     setForm((f) => ({ ...f, [field]: value }))
   }
+
+  function onFotoChange(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setFotoFile(file)
+    setRemoverFoto(false)
+    setFotoPreview(URL.createObjectURL(file))
+  }
+
+  function onRemoverFoto() {
+    setFotoFile(null)
+    setFotoPreview(null)
+    setRemoverFoto(true)
+  }
+
+  const markupPadraoPorCategoria = Object.fromEntries(categorias.map((c) => [c.nome, c.markup_padrao]))
 
   const preview = (() => {
     const custoTotal = custoTotalProduto({
@@ -51,10 +89,13 @@ export default function ProdutoForm({ mode, produto, onClose, onSaved }) {
       outros_custos: Number(form.outros_custos) || 0,
       qtd_comprada: Number(form.qtd_comprada) || 1,
     })
-    const markup = markupProduto({
-      markup_manual: form.markup_manual === '' ? null : Number(form.markup_manual) / 100,
-      categoria: form.categoria,
-    })
+    const markup = markupProduto(
+      {
+        markup_manual: form.markup_manual === '' ? null : Number(form.markup_manual) / 100,
+        categoria: form.categoria,
+      },
+      markupPadraoPorCategoria
+    )
     return {
       custoTotal,
       precoMinimo: precoMinimo(custoTotal),
@@ -78,6 +119,21 @@ export default function ProdutoForm({ mode, produto, onClose, onSaved }) {
     setSaving(true)
     setError(null)
 
+    let fotoUrl = mode === 'duplicar' ? null : produto?.foto_url || null
+    if (removerFoto) fotoUrl = null
+
+    if (fotoFile) {
+      const ext = fotoFile.name.split('.').pop()
+      const path = `${crypto.randomUUID()}.${ext}`
+      const { error: uploadError } = await supabase.storage.from('produtos').upload(path, fotoFile)
+      if (uploadError) {
+        setSaving(false)
+        setError(uploadError.message)
+        return
+      }
+      fotoUrl = supabase.storage.from('produtos').getPublicUrl(path).data.publicUrl
+    }
+
     const payload = {
       sku: form.sku.trim(),
       nome: form.nome.trim(),
@@ -95,6 +151,7 @@ export default function ProdutoForm({ mode, produto, onClose, onSaved }) {
       preco_venda: Number(form.preco_venda) || 0,
       estoque_minimo: Number(form.estoque_minimo) || 0,
       ajuste_estoque: Number(form.ajuste_estoque) || 0,
+      foto_url: fotoUrl,
     }
 
     let result
@@ -129,6 +186,25 @@ export default function ProdutoForm({ mode, produto, onClose, onSaved }) {
 
         <form onSubmit={handleSubmit}>
           <div className="field">
+            <label>Foto (opcional)</label>
+            {fotoPreview && (
+              <img
+                src={fotoPreview}
+                alt="Prévia do produto"
+                style={{ width: 96, height: 96, objectFit: 'cover', borderRadius: 'var(--radius)', marginBottom: 8, border: '1px solid var(--border)' }}
+              />
+            )}
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <input type="file" accept="image/*" onChange={onFotoChange} />
+              {fotoPreview && (
+                <button type="button" className="btn btn-sm btn-ghost" onClick={onRemoverFoto}>
+                  Remover
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="field">
             <label>Nome</label>
             <input required value={form.nome} onChange={(e) => set('nome', e.target.value)} />
           </div>
@@ -139,10 +215,16 @@ export default function ProdutoForm({ mode, produto, onClose, onSaved }) {
               <input required value={form.sku} onChange={(e) => set('sku', e.target.value)} autoFocus={mode === 'duplicar'} />
             </div>
             <div className="field">
-              <label>Categoria</label>
-              <select value={form.categoria} onChange={(e) => set('categoria', e.target.value)}>
-                {CATEGORIAS.map((c) => (
-                  <option key={c} value={c}>{c}</option>
+              <label>
+                Categoria{' '}
+                <button type="button" className="btn btn-ghost btn-sm" style={{ padding: '0 4px' }} onClick={() => setShowCategoriasManager(true)}>
+                  gerenciar
+                </button>
+              </label>
+              <select required value={form.categoria} onChange={(e) => set('categoria', e.target.value)}>
+                {form.categoria === '' && <option value="">Selecione...</option>}
+                {categorias.map((c) => (
+                  <option key={c.id} value={c.nome}>{c.nome}</option>
                 ))}
               </select>
             </div>
@@ -240,6 +322,10 @@ export default function ProdutoForm({ mode, produto, onClose, onSaved }) {
             {saving ? 'Salvando...' : 'Salvar'}
           </button>
         </form>
+
+        {showCategoriasManager && (
+          <CategoriasManager onClose={() => setShowCategoriasManager(false)} onChanged={loadCategorias} />
+        )}
       </div>
     </div>
   )
