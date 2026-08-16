@@ -2,11 +2,13 @@ import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { FORMAS_PAGAMENTO } from '../lib/config'
 import { fmtMoeda } from '../lib/calc'
+import Lightbox from '../components/Lightbox'
 
 export default function Vender() {
   const [produtos, setProdutos] = useState([])
   const [query, setQuery] = useState('')
   const [selecionado, setSelecionado] = useState(null)
+  const [fotoAmpliada, setFotoAmpliada] = useState(null)
   const [preco, setPreco] = useState('')
   const [quantidade, setQuantidade] = useState(1)
   const [formaPagamento, setFormaPagamento] = useState(FORMAS_PAGAMENTO[0])
@@ -125,7 +127,8 @@ export default function Vender() {
               <img
                 src={selecionado.foto_url}
                 alt={selecionado.nome}
-                style={{ width: 96, height: 96, objectFit: 'cover', borderRadius: 'var(--radius)', border: '1px solid var(--border)', marginBottom: 12 }}
+                onClick={() => setFotoAmpliada(selecionado.foto_url)}
+                style={{ width: 96, height: 96, objectFit: 'cover', borderRadius: 'var(--radius)', border: '1px solid var(--border)', marginBottom: 12, cursor: 'pointer' }}
               />
             )}
             <div className="field-row">
@@ -163,6 +166,8 @@ export default function Vender() {
           </>
         )}
       </form>
+
+      <Lightbox src={fotoAmpliada} alt="Foto do produto" onClose={() => setFotoAmpliada(null)} />
     </div>
   )
 }

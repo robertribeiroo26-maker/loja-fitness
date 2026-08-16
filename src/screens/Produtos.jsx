@@ -1,25 +1,9 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { produtoDerivado, fmtMoeda, fmtPercent } from '../lib/calc'
+import { PencilIcon, XIcon } from '../lib/icons'
 import ProdutoForm from './ProdutoForm'
-
-function PencilIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
-      <path d="M15 5l4 4" />
-    </svg>
-  )
-}
-
-function XIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M18 6 6 18" />
-      <path d="M6 6l12 12" />
-    </svg>
-  )
-}
+import Lightbox from '../components/Lightbox'
 
 export default function Produtos() {
   const [produtos, setProdutos] = useState([])
@@ -28,12 +12,15 @@ export default function Produtos() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [formState, setFormState] = useState(null) // { mode, produto }
+  const [fotoAmpliada, setFotoAmpliada] = useState(null)
+  const [filtroCategoria, setFiltroCategoria] = useState(null)
+  const [categoriasNomes, setCategoriasNomes] = useState([])
 
   async function load() {
     setLoading(true)
     setError(null)
     const [produtosRes, vendasRes, categoriasRes] = await Promise.all([
-      supabase.from('produtos').select('*').order('criado_em', { ascending: false }),
+      supabase.from('produtos').select('*').order('nome'),
       supabase.from('vendas').select('produto_id, quantidade, tipo_movimento'),
       supabase.from('categorias').select('nome, markup_padrao'),
     ])
@@ -55,6 +42,7 @@ export default function Produtos() {
     setMarkupPadraoPorCategoria(
       Object.fromEntries((categoriasRes.data || []).map((c) => [c.nome, c.markup_padrao]))
     )
+    setCategoriasNomes((categoriasRes.data || []).map((c) => c.nome))
     setLoading(false)
   }
 
@@ -98,6 +86,28 @@ export default function Produtos() {
 
       {error && <div className="error-banner">{error}</div>}
 
+      {!loading && produtos.length > 0 && categoriasNomes.length > 0 && (
+        <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 8, marginBottom: 4 }}>
+          <button
+            className="btn btn-sm"
+            style={filtroCategoria === null ? { background: 'var(--primary)', color: '#fff', borderColor: 'var(--primary)', flexShrink: 0 } : { flexShrink: 0 }}
+            onClick={() => setFiltroCategoria(null)}
+          >
+            Todas
+          </button>
+          {categoriasNomes.map((nome) => (
+            <button
+              key={nome}
+              className="btn btn-sm"
+              style={filtroCategoria === nome ? { background: 'var(--primary)', color: '#fff', borderColor: 'var(--primary)', flexShrink: 0 } : { flexShrink: 0 }}
+              onClick={() => setFiltroCategoria(nome)}
+            >
+              {nome}
+            </button>
+          ))}
+        </div>
+      )}
+
       {loading && <div className="empty-state">Carregando...</div>}
 
       {!loading && produtos.length === 0 && (
@@ -105,7 +115,9 @@ export default function Produtos() {
       )}
 
       {!loading &&
-        produtos.map((p) => {
+        produtos
+          .filter((p) => !filtroCategoria || p.categoria === filtroCategoria)
+          .map((p) => {
           const derived = produtoDerivado(p, vendidoPorProduto[p.id] || 0, markupPadraoPorCategoria)
           return (
             <div className="card" key={p.id}>
@@ -114,7 +126,8 @@ export default function Produtos() {
                   <img
                     src={p.foto_url}
                     alt={p.nome}
-                    style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 'var(--radius)', flexShrink: 0 }}
+                    onClick={() => setFotoAmpliada(p.foto_url)}
+                    style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 'var(--radius)', flexShrink: 0, cursor: 'pointer' }}
                   />
                 ) : (
                   <div
@@ -191,6 +204,8 @@ export default function Produtos() {
           onSaved={() => closeForm(true)}
         />
       )}
+
+      <Lightbox src={fotoAmpliada} alt="Foto do produto" onClose={() => setFotoAmpliada(null)} />
     </div>
   )
 }

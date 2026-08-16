@@ -1,6 +1,7 @@
 -- Schema para o app de gestão de loja de roupas fitness
 -- Rode este arquivo no SQL Editor do seu projeto Supabase (instalação nova).
--- Se você já rodou uma versão anterior deste arquivo, use migration_002_categorias_fotos.sql em vez deste.
+-- Se você já rodou uma versão anterior deste arquivo, use migration_002_categorias_fotos.sql
+-- e migration_003_tipos.sql em vez deste.
 --
 -- Sem autenticação nesta v1 (uso single-user, sem tela de login — risco aceito).
 -- As policies abaixo liberam leitura/escrita para a chave anon.
@@ -10,6 +11,7 @@ create table if not exists produtos (
   sku text not null unique,
   nome text not null,
   categoria text not null,
+  tipo text,
   tecido text,
   cor text,
   tamanho text,
@@ -54,6 +56,12 @@ create table if not exists categorias (
   criado_em timestamptz not null default now()
 );
 
+create table if not exists tipos (
+  id uuid primary key default gen_random_uuid(),
+  nome text not null unique,
+  criado_em timestamptz not null default now()
+);
+
 create index if not exists vendas_produto_id_idx on vendas(produto_id);
 create index if not exists vendas_data_idx on vendas(data);
 create index if not exists despesas_data_idx on despesas(data);
@@ -62,6 +70,7 @@ alter table produtos enable row level security;
 alter table vendas enable row level security;
 alter table despesas enable row level security;
 alter table categorias enable row level security;
+alter table tipos enable row level security;
 
 drop policy if exists "anon full access produtos" on produtos;
 create policy "anon full access produtos" on produtos
@@ -87,6 +96,17 @@ insert into categorias (nome, markup_padrao) values
   ('Conjunto', 0.90),
   ('Jaqueta/Casaco', 0.80),
   ('Outro', 1.00)
+on conflict (nome) do nothing;
+
+drop policy if exists "anon full access tipos" on tipos;
+create policy "anon full access tipos" on tipos
+  for all using (true) with check (true);
+
+insert into tipos (nome) values
+  ('Curto'),
+  ('Pedal'),
+  ('Médio'),
+  ('Longo')
 on conflict (nome) do nothing;
 
 -- Storage: bucket público para fotos de produtos

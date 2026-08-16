@@ -2,24 +2,22 @@ import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { XIcon } from '../lib/icons'
 
-export default function CategoriasManager({ onClose, onChanged }) {
-  const [categorias, setCategorias] = useState([])
+export default function TiposManager({ onClose, onChanged }) {
+  const [tipos, setTipos] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [editingId, setEditingId] = useState(null)
   const [editNome, setEditNome] = useState('')
-  const [editMarkup, setEditMarkup] = useState('')
   const [novoNome, setNovoNome] = useState('')
-  const [novoMarkup, setNovoMarkup] = useState('100')
   const [saving, setSaving] = useState(false)
   const mudouRef = useRef(false)
 
   async function load() {
     setLoading(true)
     setError(null)
-    const { data, error } = await supabase.from('categorias').select('*').order('nome')
+    const { data, error } = await supabase.from('tipos').select('*').order('nome')
     if (error) setError(error.message)
-    else setCategorias(data || [])
+    else setTipos(data || [])
     setLoading(false)
   }
 
@@ -36,10 +34,7 @@ export default function CategoriasManager({ onClose, onChanged }) {
     e.preventDefault()
     setSaving(true)
     setError(null)
-    const { error } = await supabase.from('categorias').insert({
-      nome: novoNome.trim(),
-      markup_padrao: (Number(novoMarkup) || 0) / 100,
-    })
+    const { error } = await supabase.from('tipos').insert({ nome: novoNome.trim() })
     setSaving(false)
     if (error) {
       setError(error.message)
@@ -47,26 +42,24 @@ export default function CategoriasManager({ onClose, onChanged }) {
     }
     mudouRef.current = true
     setNovoNome('')
-    setNovoMarkup('100')
     load()
   }
 
-  function iniciarEdicao(cat) {
-    setEditingId(cat.id)
-    setEditNome(cat.nome)
-    setEditMarkup(String(cat.markup_padrao * 100))
+  function iniciarEdicao(tipo) {
+    setEditingId(tipo.id)
+    setEditNome(tipo.nome)
   }
 
-  async function salvarEdicao(cat) {
+  async function salvarEdicao(tipo) {
     setSaving(true)
     setError(null)
     const nomeNovo = editNome.trim()
 
-    if (nomeNovo !== cat.nome) {
+    if (nomeNovo !== tipo.nome) {
       const { error: cascadeError } = await supabase
         .from('produtos')
-        .update({ categoria: nomeNovo })
-        .eq('categoria', cat.nome)
+        .update({ tipo: nomeNovo })
+        .eq('tipo', tipo.nome)
       if (cascadeError) {
         setSaving(false)
         setError(cascadeError.message)
@@ -74,10 +67,7 @@ export default function CategoriasManager({ onClose, onChanged }) {
       }
     }
 
-    const { error } = await supabase
-      .from('categorias')
-      .update({ nome: nomeNovo, markup_padrao: (Number(editMarkup) || 0) / 100 })
-      .eq('id', cat.id)
+    const { error } = await supabase.from('tipos').update({ nome: nomeNovo }).eq('id', tipo.id)
 
     setSaving(false)
     if (error) {
@@ -89,20 +79,20 @@ export default function CategoriasManager({ onClose, onChanged }) {
     load()
   }
 
-  async function excluir(cat) {
+  async function excluir(tipo) {
     const { count } = await supabase
       .from('produtos')
       .select('id', { count: 'exact', head: true })
-      .eq('categoria', cat.nome)
+      .eq('tipo', tipo.nome)
 
     const aviso =
       count > 0
-        ? `"${cat.nome}" está em uso em ${count} produto(s). Eles vão manter o nome da categoria, mas ela deixará de ter markup padrão. Excluir mesmo assim?`
-        : `Excluir a categoria "${cat.nome}"?`
+        ? `"${tipo.nome}" está em uso em ${count} produto(s). Eles vão manter o nome, mas o tipo deixará de existir na lista. Excluir mesmo assim?`
+        : `Excluir o tipo "${tipo.nome}"?`
     if (!window.confirm(aviso)) return
 
     setError(null)
-    const { error } = await supabase.from('categorias').delete().eq('id', cat.id)
+    const { error } = await supabase.from('tipos').delete().eq('id', tipo.id)
     if (error) {
       setError(error.message)
       return
@@ -115,7 +105,7 @@ export default function CategoriasManager({ onClose, onChanged }) {
     <div className="modal-overlay" onClick={fechar}>
       <div className="modal-sheet" onClick={(e) => e.stopPropagation()}>
         <div className="modal-sheet-header">
-          <h2>Categorias</h2>
+          <h2>Tipos (comprimento)</h2>
           <button
             type="button"
             className="btn btn-sm btn-ghost"
@@ -130,20 +120,20 @@ export default function CategoriasManager({ onClose, onChanged }) {
         {error && <div className="error-banner">{error}</div>}
         {loading && <div className="empty-state">Carregando...</div>}
 
+        {!loading && tipos.length === 0 && (
+          <div className="empty-state">Nenhum tipo cadastrado ainda. Ex: curto, pedal, longo, médio.</div>
+        )}
+
         {!loading &&
-          categorias.map((cat) => (
-            <div className="list-item" key={cat.id}>
-              {editingId === cat.id ? (
+          tipos.map((tipo) => (
+            <div className="list-item" key={tipo.id}>
+              {editingId === tipo.id ? (
                 <>
                   <div className="list-item-main">
-                    <input value={editNome} onChange={(e) => setEditNome(e.target.value)} style={{ marginBottom: 6, width: '100%' }} />
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <input type="number" step="1" min="0" value={editMarkup} onChange={(e) => setEditMarkup(e.target.value)} style={{ width: 70 }} />
-                      <span className="hint" style={{ margin: 0 }}>% markup</span>
-                    </div>
+                    <input value={editNome} onChange={(e) => setEditNome(e.target.value)} style={{ width: '100%' }} />
                   </div>
                   <div className="list-item-actions">
-                    <button className="btn btn-sm btn-primary" disabled={saving} onClick={() => salvarEdicao(cat)}>
+                    <button className="btn btn-sm btn-primary" disabled={saving} onClick={() => salvarEdicao(tipo)}>
                       Salvar
                     </button>
                     <button className="btn btn-sm" onClick={() => setEditingId(null)}>
@@ -154,14 +144,13 @@ export default function CategoriasManager({ onClose, onChanged }) {
               ) : (
                 <>
                   <div className="list-item-main">
-                    <div className="list-item-title">{cat.nome}</div>
-                    <div className="list-item-sub">markup padrão: {(cat.markup_padrao * 100).toFixed(0)}%</div>
+                    <div className="list-item-title">{tipo.nome}</div>
                   </div>
                   <div className="list-item-actions">
-                    <button className="btn btn-sm" onClick={() => iniciarEdicao(cat)}>
+                    <button className="btn btn-sm" onClick={() => iniciarEdicao(tipo)}>
                       Editar
                     </button>
-                    <button className="btn btn-sm" style={{ color: 'var(--danger)' }} onClick={() => excluir(cat)}>
+                    <button className="btn btn-sm" style={{ color: 'var(--danger)' }} onClick={() => excluir(tipo)}>
                       Excluir
                     </button>
                   </div>
@@ -171,18 +160,12 @@ export default function CategoriasManager({ onClose, onChanged }) {
           ))}
 
         <form onSubmit={adicionar} className="card" style={{ marginTop: 12 }}>
-          <div className="field-row">
-            <div className="field">
-              <label>Nova categoria</label>
-              <input required value={novoNome} onChange={(e) => setNovoNome(e.target.value)} placeholder="ex: Meia" />
-            </div>
-            <div className="field" style={{ maxWidth: 100 }}>
-              <label>Markup %</label>
-              <input type="number" step="1" min="0" required value={novoMarkup} onChange={(e) => setNovoMarkup(e.target.value)} />
-            </div>
+          <div className="field">
+            <label>Novo tipo</label>
+            <input required value={novoNome} onChange={(e) => setNovoNome(e.target.value)} placeholder="ex: Pedal" />
           </div>
           <button className="btn btn-primary btn-block" type="submit" disabled={saving}>
-            + Adicionar categoria
+            + Adicionar tipo
           </button>
         </form>
       </div>

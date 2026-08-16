@@ -1,12 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { custoTotalProduto, markupProduto, precoMinimo, precoRecomendado, fmtMoeda } from '../lib/calc'
+import { XIcon, CameraIcon, FolderIcon } from '../lib/icons'
 import CategoriasManager from './CategoriasManager'
+import TiposManager from './TiposManager'
+import Lightbox from '../components/Lightbox'
 
 const BLANK = {
   sku: '',
   nome: '',
   categoria: '',
+  tipo: '',
   tecido: '',
   cor: '',
   tamanho: '',
@@ -24,14 +28,18 @@ const BLANK = {
 
 // mode: 'novo' | 'editar' | 'duplicar'
 export default function ProdutoForm({ mode, produto, onClose, onSaved }) {
+  const produtoSemNulos = produto
+    ? Object.fromEntries(Object.entries(produto).filter(([, v]) => v !== null))
+    : {}
+
   const initial =
     mode === 'novo'
       ? BLANK
       : {
           ...BLANK,
-          ...produto,
+          ...produtoSemNulos,
           id: mode === 'editar' ? produto.id : undefined,
-          sku: mode === 'duplicar' ? '' : produto.sku,
+          sku: mode === 'duplicar' ? `${produto.sku}-` : produto.sku,
           markup_manual: produto.markup_manual != null ? produto.markup_manual * 100 : '',
         }
 
@@ -41,9 +49,13 @@ export default function ProdutoForm({ mode, produto, onClose, onSaved }) {
   const [precoVendaTouched, setPrecoVendaTouched] = useState(mode !== 'novo')
   const [categorias, setCategorias] = useState([])
   const [showCategoriasManager, setShowCategoriasManager] = useState(false)
+  const [tipos, setTipos] = useState([])
+  const [showTiposManager, setShowTiposManager] = useState(false)
+  const [fornecedores, setFornecedores] = useState([])
   const [fotoFile, setFotoFile] = useState(null)
   const [fotoPreview, setFotoPreview] = useState(mode === 'duplicar' ? null : produto?.foto_url || null)
   const [removerFoto, setRemoverFoto] = useState(false)
+  const [fotoAmpliada, setFotoAmpliada] = useState(false)
   const arquivoInputRef = useRef(null)
   const cameraInputRef = useRef(null)
 
@@ -59,8 +71,26 @@ export default function ProdutoForm({ mode, produto, onClose, onSaved }) {
     }
   }
 
+  async function loadTipos() {
+    const { data, error } = await supabase.from('tipos').select('*').order('nome')
+    if (error) {
+      setError(error.message)
+      return
+    }
+    setTipos(data || [])
+  }
+
+  async function loadFornecedores() {
+    const { data, error } = await supabase.from('produtos').select('fornecedor').not('fornecedor', 'is', null)
+    if (error) return
+    const nomes = [...new Set((data || []).map((p) => p.fornecedor).filter(Boolean))].sort()
+    setFornecedores(nomes)
+  }
+
   useEffect(() => {
     loadCategorias()
+    loadTipos()
+    loadFornecedores()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -140,6 +170,7 @@ export default function ProdutoForm({ mode, produto, onClose, onSaved }) {
       sku: form.sku.trim(),
       nome: form.nome.trim(),
       categoria: form.categoria,
+      tipo: form.tipo || null,
       tecido: form.tecido || null,
       cor: form.cor || null,
       tamanho: form.tamanho || null,
@@ -178,12 +209,20 @@ export default function ProdutoForm({ mode, produto, onClose, onSaved }) {
       <div className="modal-sheet" onClick={(e) => e.stopPropagation()}>
         <div className="modal-sheet-header">
           <h2>{title}</h2>
-          <button className="btn btn-ghost" onClick={onClose}>✕</button>
+          <button
+            type="button"
+            className="btn btn-sm btn-ghost"
+            title="Fechar"
+            style={{ padding: '5px 7px', display: 'flex', border: '1px solid var(--border)' }}
+            onClick={onClose}
+          >
+            <XIcon />
+          </button>
         </div>
 
         {error && <div className="error-banner">{error}</div>}
         {mode === 'duplicar' && (
-          <div className="hint">Confira o tamanho/cor e o SKU — o resto foi copiado do produto original.</div>
+          <div className="hint">Confira a cor/tamanho e complete o SKU (já veio com um "-" no final) — o resto foi copiado do produto original.</div>
         )}
 
         <form onSubmit={handleSubmit}>
@@ -193,7 +232,8 @@ export default function ProdutoForm({ mode, produto, onClose, onSaved }) {
               <img
                 src={fotoPreview}
                 alt="Prévia do produto"
-                style={{ width: 96, height: 96, objectFit: 'cover', borderRadius: 'var(--radius)', marginBottom: 8, border: '1px solid var(--border)' }}
+                onClick={() => setFotoAmpliada(true)}
+                style={{ width: 96, height: 96, objectFit: 'cover', borderRadius: 'var(--radius)', marginBottom: 8, border: '1px solid var(--border)', cursor: 'pointer' }}
               />
             )}
             <input
@@ -213,10 +253,10 @@ export default function ProdutoForm({ mode, produto, onClose, onSaved }) {
             />
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
               <button type="button" className="btn btn-sm" onClick={() => cameraInputRef.current?.click()}>
-                📷 Tirar foto
+                <CameraIcon /> Tirar foto
               </button>
               <button type="button" className="btn btn-sm" onClick={() => arquivoInputRef.current?.click()}>
-                📁 Escolher arquivo
+                <FolderIcon /> Escolher arquivo
               </button>
               {fotoPreview && (
                 <button type="button" className="btn btn-sm btn-ghost" onClick={onRemoverFoto}>
@@ -270,13 +310,43 @@ export default function ProdutoForm({ mode, produto, onClose, onSaved }) {
           </div>
 
           <div className="field">
+            <label>
+              Tipo (opcional){' '}
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                style={{ padding: '0 6px', fontWeight: 700 }}
+                title="Gerenciar tipos"
+                onClick={() => setShowTiposManager(true)}
+              >
+                +
+              </button>
+            </label>
+            <select value={form.tipo} onChange={(e) => set('tipo', e.target.value)}>
+              <option value="">Nenhum</option>
+              {tipos.map((t) => (
+                <option key={t.id} value={t.nome}>{t.nome}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="field">
             <label>Tecido</label>
             <input value={form.tecido} onChange={(e) => set('tecido', e.target.value)} />
           </div>
 
           <div className="field">
             <label>Fornecedor (opcional)</label>
-            <input value={form.fornecedor} onChange={(e) => set('fornecedor', e.target.value)} />
+            <input
+              list="fornecedores-sugestoes"
+              value={form.fornecedor}
+              onChange={(e) => set('fornecedor', e.target.value)}
+            />
+            <datalist id="fornecedores-sugestoes">
+              {fornecedores.map((f) => (
+                <option key={f} value={f} />
+              ))}
+            </datalist>
           </div>
 
           <div className="field-row">
@@ -317,6 +387,9 @@ export default function ProdutoForm({ mode, produto, onClose, onSaved }) {
             <div className="dashboard-metric"><span>Preço mínimo (margem 35%)</span><strong>{fmtMoeda(preview.precoMinimo)}</strong></div>
             <div className="dashboard-metric"><span>Preço recomendado</span><strong>{fmtMoeda(preview.precoRecomendado)}</strong></div>
           </div>
+          <div className="hint" style={{ marginTop: -6 }}>
+            Preço mínimo é o menor valor pra não perder a margem de 35%. Preço de venda é o que você realmente vai cobrar do cliente — normalmente o recomendado, mas pode ajustar pra mais ou pra menos (nunca abaixo do mínimo).
+          </div>
 
           <div className="field-row">
             <div className="field">
@@ -354,7 +427,15 @@ export default function ProdutoForm({ mode, produto, onClose, onSaved }) {
         {showCategoriasManager && (
           <CategoriasManager onClose={() => setShowCategoriasManager(false)} onChanged={loadCategorias} />
         )}
+
+        {showTiposManager && (
+          <TiposManager onClose={() => setShowTiposManager(false)} onChanged={loadTipos} />
+        )}
       </div>
+
+      {fotoAmpliada && (
+        <Lightbox src={fotoPreview} alt="Foto do produto" onClose={() => setFotoAmpliada(false)} />
+      )}
     </div>
   )
 }
