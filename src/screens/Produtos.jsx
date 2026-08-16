@@ -87,24 +87,14 @@ export default function Produtos() {
       {error && <div className="error-banner">{error}</div>}
 
       {!loading && produtos.length > 0 && categoriasNomes.length > 0 && (
-        <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 8, marginBottom: 4 }}>
-          <button
-            className="btn btn-sm"
-            style={filtroCategoria === null ? { background: 'var(--primary)', color: '#fff', borderColor: 'var(--primary)', flexShrink: 0 } : { flexShrink: 0 }}
-            onClick={() => setFiltroCategoria(null)}
-          >
-            Todas
-          </button>
-          {categoriasNomes.map((nome) => (
-            <button
-              key={nome}
-              className="btn btn-sm"
-              style={filtroCategoria === nome ? { background: 'var(--primary)', color: '#fff', borderColor: 'var(--primary)', flexShrink: 0 } : { flexShrink: 0 }}
-              onClick={() => setFiltroCategoria(nome)}
-            >
-              {nome}
-            </button>
-          ))}
+        <div className="field" style={{ maxWidth: 220, marginBottom: 12 }}>
+          <label>Filtrar por categoria</label>
+          <select value={filtroCategoria || ''} onChange={(e) => setFiltroCategoria(e.target.value || null)}>
+            <option value="">Todas</option>
+            {categoriasNomes.map((nome) => (
+              <option key={nome} value={nome}>{nome}</option>
+            ))}
+          </select>
         </div>
       )}
 
@@ -152,6 +142,11 @@ export default function Produtos() {
                   <div className="list-item-sub">
                     {p.sku} · estoque: {derived.estoqueAtual}
                   </div>
+                  {(p.cor || p.tamanho || p.tipo) && (
+                    <div className="list-item-sub">
+                      {[p.cor, p.tamanho, p.tipo].filter(Boolean).join(' · ')}
+                    </div>
+                  )}
                 </div>
                 <span className={`badge ${derived.estoqueBaixo ? 'badge-baixo' : 'badge-ok'}`}>
                   {derived.estoqueBaixo ? 'BAIXO' : 'OK'}
