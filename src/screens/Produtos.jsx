@@ -125,6 +125,22 @@ export default function Produtos() {
                 <span className={`badge ${derived.estoqueBaixo ? 'badge-baixo' : 'badge-ok'}`}>
                   {derived.estoqueBaixo ? 'BAIXO' : 'OK'}
                 </span>
+                <button
+                  className="btn btn-sm btn-ghost"
+                  title="Editar"
+                  style={{ flexShrink: 0, fontSize: 16, padding: '4px 6px' }}
+                  onClick={() => setFormState({ mode: 'editar', produto: p })}
+                >
+                  ✏️
+                </button>
+                <button
+                  className="btn btn-sm btn-ghost"
+                  title="Excluir"
+                  style={{ flexShrink: 0, fontSize: 16, padding: '4px 6px', color: 'var(--danger)' }}
+                  onClick={() => excluirProduto(p)}
+                >
+                  ✕
+                </button>
               </div>
 
               <div className="dashboard-metric" style={{ marginTop: 10 }}>
@@ -141,14 +157,8 @@ export default function Produtos() {
               </div>
 
               <div className="list-item-actions" style={{ marginTop: 10 }}>
-                <button className="btn btn-sm" onClick={() => setFormState({ mode: 'editar', produto: p })}>
-                  Editar
-                </button>
                 <button className="btn btn-sm" onClick={() => setFormState({ mode: 'duplicar', produto: p })}>
                   Duplicar
-                </button>
-                <button className="btn btn-sm" onClick={() => excluirProduto(p)} style={{ color: 'var(--danger)' }}>
-                  Excluir
                 </button>
               </div>
             </div>

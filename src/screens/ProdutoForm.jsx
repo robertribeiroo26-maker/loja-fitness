@@ -239,8 +239,14 @@ export default function ProdutoForm({ mode, produto, onClose, onSaved }) {
             <div className="field">
               <label>
                 Categoria{' '}
-                <button type="button" className="btn btn-ghost btn-sm" style={{ padding: '0 4px' }} onClick={() => setShowCategoriasManager(true)}>
-                  gerenciar
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  style={{ padding: '0 6px', fontWeight: 700 }}
+                  title="Gerenciar categorias"
+                  onClick={() => setShowCategoriasManager(true)}
+                >
+                  +
                 </button>
               </label>
               <select required value={form.categoria} onChange={(e) => set('categoria', e.target.value)}>
