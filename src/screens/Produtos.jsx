@@ -142,9 +142,14 @@ export default function Produtos() {
                   <div className="list-item-sub">
                     {p.sku} · estoque: {derived.estoqueAtual}
                   </div>
-                  {(p.cor || p.tamanho || p.tipo) && (
+                  {(p.cor || p.tamanho) && (
                     <div className="list-item-sub">
-                      {[p.cor, p.tamanho, p.tipo].filter(Boolean).join(' · ')}
+                      {[p.cor, p.tamanho].filter(Boolean).join(' · ')}
+                    </div>
+                  )}
+                  {p.tipo && (
+                    <div className="list-item-sub">
+                      {p.tipo}
                     </div>
                   )}
                 </div>
