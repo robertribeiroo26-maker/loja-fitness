@@ -1,14 +1,14 @@
 -- Schema para o app de gestão de loja de roupas fitness
 -- Rode este arquivo no SQL Editor do seu projeto Supabase (instalação nova).
--- Se você já rodou uma versão anterior deste arquivo, use migration_002_categorias_fotos.sql
--- e migration_003_tipos.sql em vez deste.
+-- Se você já rodou uma versão anterior deste arquivo, use migration_002_categorias_fotos.sql,
+-- migration_003_tipos.sql e migration_004_sku_nao_unico.sql em vez deste.
 --
 -- Sem autenticação nesta v1 (uso single-user, sem tela de login — risco aceito).
 -- As policies abaixo liberam leitura/escrita para a chave anon.
 
 create table if not exists produtos (
   id uuid primary key default gen_random_uuid(),
-  sku text not null unique,
+  sku text not null,
   nome text not null,
   categoria text not null,
   tipo text,
@@ -26,7 +26,8 @@ create table if not exists produtos (
   estoque_minimo integer not null default 3,
   ajuste_estoque integer not null default 0,
   foto_url text,
-  criado_em timestamptz not null default now()
+  criado_em timestamptz not null default now(),
+  constraint produtos_sku_cor_tamanho_key unique (sku, cor, tamanho)
 );
 
 create table if not exists vendas (

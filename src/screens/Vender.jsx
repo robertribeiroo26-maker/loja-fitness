@@ -20,7 +20,7 @@ export default function Vender() {
   useEffect(() => {
     supabase
       .from('produtos')
-      .select('id, sku, nome, preco_venda, foto_url')
+      .select('id, sku, nome, cor, tamanho, preco_venda, foto_url')
       .order('nome')
       .then(({ data, error }) => {
         if (error) setError(error.message)
@@ -38,7 +38,8 @@ export default function Vender() {
 
   function selecionar(produto) {
     setSelecionado(produto)
-    setQuery(`${produto.nome} (${produto.sku})`)
+    const variante = [produto.cor, produto.tamanho].filter(Boolean).join(' ')
+    setQuery(`${produto.nome} (${produto.sku})${variante ? ' - ' + variante : ''}`)
     setPreco(produto.preco_venda)
   }
 
@@ -113,7 +114,9 @@ export default function Vender() {
                   )}
                   <div className="list-item-main">
                     <div className="list-item-title">{p.nome}</div>
-                    <div className="list-item-sub">{p.sku} · {fmtMoeda(p.preco_venda)}</div>
+                    <div className="list-item-sub">
+                      {p.sku}{[p.cor, p.tamanho].filter(Boolean).length > 0 ? ` · ${[p.cor, p.tamanho].filter(Boolean).join(' · ')}` : ''} · {fmtMoeda(p.preco_venda)}
+                    </div>
                   </div>
                 </div>
               ))}

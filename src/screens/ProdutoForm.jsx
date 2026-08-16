@@ -39,7 +39,7 @@ export default function ProdutoForm({ mode, produto, onClose, onSaved }) {
           ...BLANK,
           ...produtoSemNulos,
           id: mode === 'editar' ? produto.id : undefined,
-          sku: mode === 'duplicar' ? `${produto.sku}-` : produto.sku,
+          sku: produto.sku,
           markup_manual: produto.markup_manual != null ? produto.markup_manual * 100 : '',
         }
 
@@ -196,7 +196,11 @@ export default function ProdutoForm({ mode, produto, onClose, onSaved }) {
 
     setSaving(false)
     if (result.error) {
-      setError(result.error.message)
+      if (result.error.message.includes('produtos_sku_cor_tamanho_key')) {
+        setError('Já existe um produto com esse mesmo SKU, cor e tamanho. Se for uma peça diferente, mude a cor ou o tamanho.')
+      } else {
+        setError(result.error.message)
+      }
       return
     }
     onSaved()
@@ -222,7 +226,7 @@ export default function ProdutoForm({ mode, produto, onClose, onSaved }) {
 
         {error && <div className="error-banner">{error}</div>}
         {mode === 'duplicar' && (
-          <div className="hint">Confira a cor/tamanho e complete o SKU (já veio com um "-" no final) — o resto foi copiado do produto original.</div>
+          <div className="hint">O SKU veio igual ao do produto original (mesmo modelo) — troque a cor e/ou o tamanho. O resto também foi copiado.</div>
         )}
 
         <form onSubmit={handleSubmit}>
