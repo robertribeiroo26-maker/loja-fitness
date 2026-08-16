@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { CATEGORIAS } from '../lib/config'
 import { custoTotalProduto, markupProduto, precoMinimo, precoRecomendado, fmtMoeda } from '../lib/calc'
@@ -32,12 +32,13 @@ export default function ProdutoForm({ mode, produto, onClose, onSaved }) {
           ...produto,
           id: mode === 'editar' ? produto.id : undefined,
           sku: mode === 'duplicar' ? '' : produto.sku,
-          markup_manual: produto.markup_manual ?? '',
+          markup_manual: produto.markup_manual != null ? produto.markup_manual * 100 : '',
         }
 
   const [form, setForm] = useState(initial)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
+  const [precoVendaTouched, setPrecoVendaTouched] = useState(mode !== 'novo')
 
   function set(field, value) {
     setForm((f) => ({ ...f, [field]: value }))
@@ -51,7 +52,7 @@ export default function ProdutoForm({ mode, produto, onClose, onSaved }) {
       qtd_comprada: Number(form.qtd_comprada) || 1,
     })
     const markup = markupProduto({
-      markup_manual: form.markup_manual === '' ? null : Number(form.markup_manual),
+      markup_manual: form.markup_manual === '' ? null : Number(form.markup_manual) / 100,
       categoria: form.categoria,
     })
     return {
@@ -60,6 +61,17 @@ export default function ProdutoForm({ mode, produto, onClose, onSaved }) {
       precoRecomendado: precoRecomendado(custoTotal, markup),
     }
   })()
+
+  useEffect(() => {
+    if (precoVendaTouched) return
+    setForm((f) => ({ ...f, preco_venda: preview.precoRecomendado.toFixed(2) }))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preview.precoRecomendado, precoVendaTouched])
+
+  function usarPrecoRecomendado() {
+    setPrecoVendaTouched(false)
+    set('preco_venda', preview.precoRecomendado.toFixed(2))
+  }
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -79,7 +91,7 @@ export default function ProdutoForm({ mode, produto, onClose, onSaved }) {
       custo_unitario: Number(form.custo_unitario) || 0,
       frete: Number(form.frete) || 0,
       outros_custos: Number(form.outros_custos) || 0,
-      markup_manual: form.markup_manual === '' ? null : Number(form.markup_manual),
+      markup_manual: form.markup_manual === '' ? null : Number(form.markup_manual) / 100,
       preco_venda: Number(form.preco_venda) || 0,
       estoque_minimo: Number(form.estoque_minimo) || 0,
       ajuste_estoque: Number(form.ajuste_estoque) || 0,
@@ -185,8 +197,8 @@ export default function ProdutoForm({ mode, produto, onClose, onSaved }) {
               <input type="number" step="0.01" min="0" value={form.outros_custos} onChange={(e) => set('outros_custos', e.target.value)} />
             </div>
             <div className="field">
-              <label>Markup manual (opcional)</label>
-              <input type="number" step="0.01" min="0" placeholder="usa o da categoria" value={form.markup_manual} onChange={(e) => set('markup_manual', e.target.value)} />
+              <label>Markup manual % (opcional)</label>
+              <input type="number" step="1" min="0" placeholder="usa o da categoria" value={form.markup_manual} onChange={(e) => set('markup_manual', e.target.value)} />
             </div>
           </div>
 
@@ -198,14 +210,24 @@ export default function ProdutoForm({ mode, produto, onClose, onSaved }) {
 
           <div className="field-row">
             <div className="field">
-              <label>Preço de venda</label>
-              <input required type="number" step="0.01" min="0" value={form.preco_venda} onChange={(e) => set('preco_venda', e.target.value)} />
+              <label>
+                Preço de venda{' '}
+                {precoVendaTouched && (
+                  <button type="button" className="btn btn-ghost btn-sm" style={{ padding: '0 4px' }} onClick={usarPrecoRecomendado}>
+                    usar recomendado
+                  </button>
+                )}
+              </label>
+              <input required type="number" step="0.01" min="0" value={form.preco_venda} onChange={(e) => { setPrecoVendaTouched(true); set('preco_venda', e.target.value) }} />
             </div>
             <div className="field">
               <label>Estoque mínimo</label>
               <input type="number" min="0" value={form.estoque_minimo} onChange={(e) => set('estoque_minimo', e.target.value)} />
             </div>
           </div>
+          {!precoVendaTouched && (
+            <div className="hint" style={{ marginTop: -8 }}>Calculado automaticamente a partir do custo + markup.</div>
+          )}
 
           {mode === 'editar' && (
             <div className="field">
