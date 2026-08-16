@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { produtoDerivado } from '../lib/calc'
+import { produtoDerivado, fmtMoeda, fmtPercent } from '../lib/calc'
 import ProdutoForm from './ProdutoForm'
 
 export default function Produtos() {
@@ -44,6 +44,26 @@ export default function Produtos() {
     if (refresh) load()
   }
 
+  async function excluirProduto(produto) {
+    const confirmado = window.confirm(
+      `Excluir "${produto.nome}" (${produto.sku})? As vendas registradas desse produto também serão apagadas. Essa ação não pode ser desfeita.`
+    )
+    if (!confirmado) return
+
+    setError(null)
+    const { error: vendasError } = await supabase.from('vendas').delete().eq('produto_id', produto.id)
+    if (vendasError) {
+      setError(vendasError.message)
+      return
+    }
+    const { error: produtoError } = await supabase.from('produtos').delete().eq('id', produto.id)
+    if (produtoError) {
+      setError(produtoError.message)
+      return
+    }
+    load()
+  }
+
   return (
     <div>
       <div className="screen-header">
@@ -65,22 +85,41 @@ export default function Produtos() {
         produtos.map((p) => {
           const derived = produtoDerivado(p, vendidoPorProduto[p.id] || 0)
           return (
-            <div className="list-item" key={p.id}>
-              <div className="list-item-main">
-                <div className="list-item-title">{p.nome}</div>
-                <div className="list-item-sub">
-                  {p.sku} · estoque: {derived.estoqueAtual}
+            <div className="card" key={p.id}>
+              <div className="list-item" style={{ border: 'none', margin: 0, padding: 0 }}>
+                <div className="list-item-main">
+                  <div className="list-item-title">{p.nome}</div>
+                  <div className="list-item-sub">
+                    {p.sku} · estoque: {derived.estoqueAtual}
+                  </div>
                 </div>
+                <span className={`badge ${derived.estoqueBaixo ? 'badge-baixo' : 'badge-ok'}`}>
+                  {derived.estoqueBaixo ? 'BAIXO' : 'OK'}
+                </span>
               </div>
-              <span className={`badge ${derived.estoqueBaixo ? 'badge-baixo' : 'badge-ok'}`}>
-                {derived.estoqueBaixo ? 'BAIXO' : 'OK'}
-              </span>
-              <div className="list-item-actions">
+
+              <div className="dashboard-metric" style={{ marginTop: 10 }}>
+                <span>Lucro unitário</span>
+                <strong>{fmtMoeda(derived.lucroUnitario)}</strong>
+              </div>
+              <div className="dashboard-metric">
+                <span>Markup obtido</span>
+                <strong>{fmtPercent(derived.markupObtido)}</strong>
+              </div>
+              <div className="dashboard-metric">
+                <span>Margem obtida</span>
+                <strong>{fmtPercent(derived.margemObtida)}</strong>
+              </div>
+
+              <div className="list-item-actions" style={{ marginTop: 10 }}>
                 <button className="btn btn-sm" onClick={() => setFormState({ mode: 'editar', produto: p })}>
                   Editar
                 </button>
                 <button className="btn btn-sm" onClick={() => setFormState({ mode: 'duplicar', produto: p })}>
                   Duplicar
+                </button>
+                <button className="btn btn-sm" onClick={() => excluirProduto(p)} style={{ color: 'var(--danger)' }}>
+                  Excluir
                 </button>
               </div>
             </div>

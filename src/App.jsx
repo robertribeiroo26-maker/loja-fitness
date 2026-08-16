@@ -16,7 +16,7 @@ function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>Loja Fitness</h1>
+        <h1>Moda Fitness</h1>
       </header>
 
       <main className="app-main">
