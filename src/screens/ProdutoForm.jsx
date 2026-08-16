@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { custoTotalProduto, markupProduto, precoMinimo, precoRecomendado, fmtMoeda } from '../lib/calc'
 import CategoriasManager from './CategoriasManager'
@@ -44,6 +44,8 @@ export default function ProdutoForm({ mode, produto, onClose, onSaved }) {
   const [fotoFile, setFotoFile] = useState(null)
   const [fotoPreview, setFotoPreview] = useState(mode === 'duplicar' ? null : produto?.foto_url || null)
   const [removerFoto, setRemoverFoto] = useState(false)
+  const arquivoInputRef = useRef(null)
+  const cameraInputRef = useRef(null)
 
   async function loadCategorias() {
     const { data, error } = await supabase.from('categorias').select('*').order('nome')
@@ -194,8 +196,28 @@ export default function ProdutoForm({ mode, produto, onClose, onSaved }) {
                 style={{ width: 96, height: 96, objectFit: 'cover', borderRadius: 'var(--radius)', marginBottom: 8, border: '1px solid var(--border)' }}
               />
             )}
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <input type="file" accept="image/*" onChange={onFotoChange} />
+            <input
+              ref={arquivoInputRef}
+              type="file"
+              accept="image/*"
+              onChange={onFotoChange}
+              style={{ display: 'none' }}
+            />
+            <input
+              ref={cameraInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={onFotoChange}
+              style={{ display: 'none' }}
+            />
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+              <button type="button" className="btn btn-sm" onClick={() => cameraInputRef.current?.click()}>
+                📷 Tirar foto
+              </button>
+              <button type="button" className="btn btn-sm" onClick={() => arquivoInputRef.current?.click()}>
+                📁 Escolher arquivo
+              </button>
               {fotoPreview && (
                 <button type="button" className="btn btn-sm btn-ghost" onClick={onRemoverFoto}>
                   Remover
