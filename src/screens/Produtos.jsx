@@ -3,6 +3,24 @@ import { supabase } from '../lib/supabase'
 import { produtoDerivado, fmtMoeda, fmtPercent } from '../lib/calc'
 import ProdutoForm from './ProdutoForm'
 
+function PencilIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+      <path d="M15 5l4 4" />
+    </svg>
+  )
+}
+
+function XIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M18 6 6 18" />
+      <path d="M6 6l12 12" />
+    </svg>
+  )
+}
+
 export default function Produtos() {
   const [produtos, setProdutos] = useState([])
   const [vendidoPorProduto, setVendidoPorProduto] = useState({})
@@ -128,18 +146,18 @@ export default function Produtos() {
                 <button
                   className="btn btn-sm btn-ghost"
                   title="Editar"
-                  style={{ flexShrink: 0, fontSize: 16, padding: '4px 6px' }}
+                  style={{ flexShrink: 0, padding: '5px 7px', display: 'flex', color: 'var(--text)', border: '1px solid var(--border)' }}
                   onClick={() => setFormState({ mode: 'editar', produto: p })}
                 >
-                  ✏️
+                  <PencilIcon />
                 </button>
                 <button
                   className="btn btn-sm btn-ghost"
                   title="Excluir"
-                  style={{ flexShrink: 0, fontSize: 16, padding: '4px 6px', color: 'var(--danger)' }}
+                  style={{ flexShrink: 0, padding: '5px 7px', display: 'flex', color: 'var(--danger)', border: '1px solid var(--border)' }}
                   onClick={() => excluirProduto(p)}
                 >
-                  ✕
+                  <XIcon />
                 </button>
               </div>
 
