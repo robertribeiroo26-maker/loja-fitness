@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { custoTotalProduto, markupProduto, precoMinimo, precoRecomendado, fmtMoeda } from '../lib/calc'
+import { custoTotalProduto, markupProduto, precoMinimo, precoRecomendado, fmtMoeda, fmtPercent } from '../lib/calc'
 import { XIcon, CameraIcon, FolderIcon } from '../lib/icons'
 import CategoriasManager from './CategoriasManager'
 import TiposManager from './TiposManager'
@@ -130,8 +130,10 @@ export default function ProdutoForm({ mode, produto, onClose, onSaved }) {
     )
     return {
       custoTotal,
+      markup,
       precoMinimo: precoMinimo(custoTotal),
       precoRecomendado: precoRecomendado(custoTotal, markup),
+      margemDoMarkup: markup / (1 + markup),
     }
   })()
 
@@ -385,6 +387,12 @@ export default function ProdutoForm({ mode, produto, onClose, onSaved }) {
               <input type="number" step="1" min="0" placeholder="usa o da categoria" value={form.markup_manual} onChange={(e) => set('markup_manual', e.target.value)} />
             </div>
           </div>
+          {preview.custoTotal > 0 && (
+            <div className="hint" style={{ marginTop: -8 }}>
+              {fmtPercent(preview.markup)} de markup = {fmtPercent(preview.margemDoMarkup)} de margem de lucro
+              {preview.margemDoMarkup < 0.35 && ' (abaixo do mínimo de 35% — o preço recomendado vai usar o mínimo em vez do markup)'}
+            </div>
+          )}
 
           <div className="card">
             <div className="dashboard-metric"><span>Custo total</span><strong>{fmtMoeda(preview.custoTotal)}</strong></div>
