@@ -21,7 +21,7 @@ export function precoMinimo(custoTotal) {
 }
 
 export function precoRecomendado(custoTotal, markup) {
-  return custoTotal * (1 + markup)
+  return Math.max(custoTotal * (1 + markup), precoMinimo(custoTotal))
 }
 
 export function markupObtido(precoVenda, custoTotal) {
