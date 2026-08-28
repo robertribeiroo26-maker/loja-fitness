@@ -113,6 +113,7 @@ export default function ProdutoForm({ mode, produto, onClose, onSaved }) {
   }
 
   const markupPadraoPorCategoria = Object.fromEntries(categorias.map((c) => [c.nome, c.markup_padrao]))
+  const markupDaCategoria = markupPadraoPorCategoria[form.categoria] ?? null
 
   const preview = (() => {
     const custoTotal = custoTotalProduto({
@@ -384,12 +385,21 @@ export default function ProdutoForm({ mode, produto, onClose, onSaved }) {
             </div>
             <div className="field">
               <label>Markup manual % (opcional)</label>
-              <input type="number" step="1" min="0" placeholder="usa o da categoria" value={form.markup_manual} onChange={(e) => set('markup_manual', e.target.value)} />
+              <input
+                type="number"
+                step="1"
+                min="0"
+                placeholder={markupDaCategoria != null ? `usa o da categoria: ${(markupDaCategoria * 100).toFixed(0)}%` : 'usa o da categoria'}
+                value={form.markup_manual}
+                onChange={(e) => set('markup_manual', e.target.value)}
+              />
             </div>
           </div>
           {preview.custoTotal > 0 && (
             <div className="hint" style={{ marginTop: -8 }}>
-              {fmtPercent(preview.markup)} de markup = {fmtPercent(preview.margemDoMarkup)} de margem de lucro
+              Usando {fmtPercent(preview.markup)} de markup
+              {form.markup_manual === '' ? ` (padrão da categoria ${form.categoria})` : ' (manual — substitui o da categoria)'}
+              {' '}= {fmtPercent(preview.margemDoMarkup)} de margem de lucro
               {preview.margemDoMarkup < 0.35 && ' (abaixo do mínimo de 35% — o preço recomendado vai usar o mínimo em vez do markup)'}
             </div>
           )}
