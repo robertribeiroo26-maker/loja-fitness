@@ -406,11 +406,20 @@ export default function ProdutoForm({ mode, produto, onClose, onSaved }) {
 
           <div className="card">
             <div className="dashboard-metric"><span>Custo total</span><strong>{fmtMoeda(preview.custoTotal)}</strong></div>
-            <div className="dashboard-metric"><span>Preço mínimo (margem 35%)</span><strong>{fmtMoeda(preview.precoMinimo)}</strong></div>
-            <div className="dashboard-metric"><span>Preço recomendado</span><strong>{fmtMoeda(preview.precoRecomendado)}</strong></div>
+            {preview.precoRecomendado > preview.precoMinimo ? (
+              <>
+                <div className="dashboard-metric"><span>Preço mínimo (margem 35%)</span><strong>{fmtMoeda(preview.precoMinimo)}</strong></div>
+                <div className="dashboard-metric"><span>Preço recomendado</span><strong>{fmtMoeda(preview.precoRecomendado)}</strong></div>
+              </>
+            ) : (
+              <div className="dashboard-metric">
+                <span>Preço recomendado (é o mínimo p/ margem 35%)</span>
+                <strong>{fmtMoeda(preview.precoRecomendado)}</strong>
+              </div>
+            )}
           </div>
           <div className="hint" style={{ marginTop: -6 }}>
-            Preço mínimo é o menor valor pra não perder a margem de 35%. Preço de venda é o que você realmente vai cobrar do cliente — normalmente o recomendado, mas pode ajustar pra mais ou pra menos (nunca abaixo do mínimo).
+            Preço de venda é o que você realmente vai cobrar do cliente — normalmente o recomendado, mas pode ajustar pra mais ou pra menos (nunca abaixo do mínimo, senão a margem cai dos 35%).
           </div>
 
           <div className="field-row">
